@@ -1,0 +1,14 @@
+
+QWidget#App {
+    background-color: darkslategray;
+}
+QLineEdit, QLabel {
+    margin: 2.5ex;
+    font-size: 18px;
+}
+QLabel {
+    color: white;
+}
+QPushButton {
+    font-size: 16px;
+}
