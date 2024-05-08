@@ -7,11 +7,15 @@ from PyQt5.QtWidgets import (QApplication,
                              QVBoxLayout,
                              QHBoxLayout,
                              QGroupBox,
+                             QTreeWidget,
+                             QTreeWidgetItem,
                              QWidget)
 from PyQt5.QtCore import QFile, QIODevice
+
 from datetime import date
 from sys import argv, exit
 from make_html_skeleton import make_html_skeleton, RequiredError
+from parse_html import read_html, parse_html
 from typing import Optional
 
 def get_string_input(field: str, default: str | int="") -> tuple[QLabel, QLineEdit]:
@@ -24,14 +28,15 @@ class App(QWidget):
         self.app = app
         self.appLayout = QVBoxLayout()
 
-        self.parserB = QPushButton('parser')
-        self.skeletonB = QPushButton('skeleton')
-        self.parserB.clicked.connect(self.add_parser)
-        self.skeletonB.clicked.connect(self.add_skeleton)
+        self.psrBtn = QPushButton('parser')
+        self.psrBtn.clicked.connect(self.add_parser)
+
+        self.sklBtn = QPushButton('skeleton')
+        self.sklBtn.clicked.connect(self.add_skeleton)
 
         self.inits = QVBoxLayout()
-        self.inits.addWidget(self.parserB)
-        self.inits.addWidget(self.skeletonB)
+        self.inits.addWidget(self.psrBtn)
+        self.inits.addWidget(self.sklBtn)
         
         self.appLayout.addLayout(self.inits)
 
@@ -39,35 +44,44 @@ class App(QWidget):
         self.resize(500, 500)
         self.show()
 
-        self.responses: Optional[QGroupBox] = None
-        self.form: Optional[QGroupBox] = None
+        self.resBox:  Optional[QGroupBox] = None
+        self.formBox: Optional[QGroupBox] = None
+        self.psrBox:  Optional[QGroupBox] = None
 
         exit(self.app.exec())
 
     def add_parser(self) -> None:
-        self.parserB.hide()
-        if self.responses is not None:
-            self.responses.hide()
-        if self.form is not None:
-            self.form.hide()
+        self.psrBtn.hide()
+        if self.resBox is not None:
+            self.resBox.hide()
+        if self.formBox is not None:
+            self.formBox.hide()
 
-        self.parserBox = QGroupBox()
-        self.parserLayout = QFormLayout()
+        self.psrBox = QGroupBox()
+
+        self.psrLayout = QVBoxLayout()
+
         self.fileEdit = QLineEdit()
         self.fileEdit.setPlaceholderText('*.html, *.htm, *.htmx')
         self.fileLabel = QLabel('filename: ')
-        self.parserLayout.addRow(self.fileLabel, self.fileEdit)
+
+        self.fileRow = QFormLayout()
+        self.fileRow.addRow(self.fileLabel, self.fileEdit)
+        self.psrLayout.addLayout(self.fileRow)
+
         self.fileSubmit = QPushButton('submit')
-        self.fileSubmit.clicked.connect(self.read_file_contents)
-        self.parserBox.setLayout(self.parserLayout)
-        
-        self.appLayout.addWidget(self.parserBox)
+        self.fileSubmit.clicked.connect(self.create_tree)
+        self.psrLayout.addWidget(self.fileSubmit)
+
+        self.psrBox.setLayout(self.psrLayout)
+        self.appLayout.addWidget(self.psrBox)
         
         self.repaint()
-        self.skeletonB.show()
-        pass
+        self.sklBtn.show()
 
     def add_skeleton(self) -> None:
+        if self.psrBox:
+            self.psrBox.hide()
         self.information = dict(name=None, year=date.today().year,
                             title=None, description=None, 
                             keywords=None, stylesheet=None, filename=None)
@@ -76,31 +90,34 @@ class App(QWidget):
         _fields = ['name', 'year', 'title', 'description (optional)', 'keywords (optional)', 'stylesheet (optional)', 'filename']
         self.fields = [(field, *get_string_input(field)) for field in _fields]
 
-        self.form = QGroupBox()
-        self.form.setObjectName('form')
+        self.formBox = QGroupBox()
+        self.formBox.setObjectName('form')
         self.formLayout = QFormLayout()
+
         for _, label, edit in self.fields:
             self.formLayout.addRow(label, edit)
-        self.form.setLayout(self.formLayout)
-        self.appLayout.addWidget(self.form)
+        self.formBox.setLayout(self.formLayout)
+        self.appLayout.addWidget(self.formBox)
 
-        self.submitB = QPushButton('submit')
-        self.submitB.clicked.connect(self.populate_information)
-
-        self.responses = QGroupBox()
+        self.resBox = QGroupBox()
         self.resLayout = QHBoxLayout()
 
-        self.closeB = QPushButton('close')
-        self.closeB.clicked.connect(self.app.quit)
-        self.resLayout.addWidget(self.closeB)
-        self.resLayout.addWidget(self.submitB)
-        self.responses.setLayout(self.resLayout)
+        self.subBtn = QPushButton('submit')
+        self.subBtn.clicked.connect(self.populate_information)
+        self.resLayout.addWidget(self.subBtn)
 
-        self.appLayout.addWidget(self.responses)
-        self.skeletonB.hide()
+        self.clsBtn = QPushButton('close')
+        self.clsBtn.clicked.connect(self.app.quit)
+        self.resLayout.addWidget(self.clsBtn)
+
+
+        self.resBox.setLayout(self.resLayout)
+
+        self.appLayout.addWidget(self.resBox)
+        self.sklBtn.hide()
 
         self.repaint()
-        self.parserB.show()
+        self.psrBtn.show()
 
     def populate_information(self) -> None:
         try:
@@ -146,15 +163,15 @@ class App(QWidget):
             self.information.update(name=_name, year=_year,title=_title, description=_description,keywords=_keywords, stylesheet=_stylesheet,filename=_filename) # type: ignore
 
         except RequiredError as err:
-            message = QMessageBox()
-            message.setText(f"{err} is a requied field")
-            message.exec()
+            msgBox = QMessageBox()
+            msgBox.setText(f"{err} is a requied field")
+            msgBox.exec()
             return
         
         except AttributeError as err:
-            message = QMessageBox()
-            message.setText(str(err))
-            message.exec()
+            msgBox = QMessageBox()
+            msgBox.setText(str(err))
+            msgBox.exec()
             return
         
         except Exception as err:
@@ -162,10 +179,34 @@ class App(QWidget):
             return
     
         make_html_skeleton(**self.information) # type: ignore
+    
+    @classmethod
+    def populate_tree(self, data, parent):
+        for key, value in data.items():
+            item = QTreeWidgetItem(parent)
+            item.setExpanded(True)
+            item.setText(0, key)
+            if isinstance(value, dict):
+                self.populate_tree(value, item)
+            else:
+                child = QTreeWidgetItem()
+                child.setText(0, f'"{value}"')
+                item.addChild(child)
 
-    def read_file_contents(self) -> None:
-        pass
-
+    def create_tree(self) -> None:
+        if filename := self.fileEdit.text():
+            try:
+                filename = (filename 
+                                if filename.endswith(('.html', '.htm', '.htmx')) 
+                                else f'{filename}.html')
+                html = read_html(filename)
+                self.treeDict = parse_html(html)
+                self.psrTree = QTreeWidget()
+                self.psrTree.resize(500, 500)
+                self.populate_tree(self.treeDict, self.psrTree)
+                self.psrLayout.addWidget(self.psrTree)
+            except FileNotFoundError as err:
+                print('[ERROR]', err)
 
 def main() -> None:
     app = QApplication(argv)

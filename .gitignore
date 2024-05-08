@@ -1,2 +1,5 @@
 Lib/**
 Scripts/**
+src/__pycache__/**
+Include/**
+.mypy_cache/**

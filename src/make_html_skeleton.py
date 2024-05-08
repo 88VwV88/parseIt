@@ -13,7 +13,7 @@ HTML_TEMPLATE = """<?xml version="1.0"?>
 <head>
 <title>{title}</title>
 <!-- {copyright} -->
-<meta name="Description" content={description} />
+<meta name="Description" content="{description}" />
 <meta name="Keywords" content="{keywords}" />
 <meta equiv="content-type" content="text/html; charset=utf-8" />
 {stylesheet}\

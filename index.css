@@ -1,6 +1,11 @@
 
 QWidget#App {
-    background-color: darkslategray;
+    background-color: #181818;
+    color: white;
+}
+QTreeWidget {
+    background-color: #1f1f1f;
+    color: white;
 }
 QLineEdit, QLabel {
     margin: 2.5ex;
