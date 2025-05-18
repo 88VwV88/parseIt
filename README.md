@@ -16,6 +16,7 @@
   ```
 - using `python3`
   ```bash
+  git clone https://github.com/88VwV88/parseit && cd parseit
   python3 -m pip install .
   python3 main.py
   ```
